@@ -17,16 +17,10 @@
                     Administrator — You have full access to all features including user management.
                 </p>
             </div>
-        @elseif(auth()->user()->isManager())
+        @else
             <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p class="text-sm font-medium text-blue-800">
-                    Manager — You can manage inventory and view reports.
-                </p>
-            </div>
-        @else
-            <div class="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                <p class="text-sm font-medium text-gray-700">
-                    Staff — You have access to standard inventory operations.
+                    Operator — You can manage inventory and view reports.
                 </p>
             </div>
         @endif

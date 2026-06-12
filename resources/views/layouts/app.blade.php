@@ -24,8 +24,8 @@
                     >Dashboard</a>
                     <a
                         class="text-sm text-gray-600 hover:text-gray-900"
-                        href="{{ route('dashboard') }}"
-                    >Dashboard</a>
+                        href="{{ route('user-management') }}"
+                    >User Management</a>
                 </div>
                 <div class="flex items-center gap-4">
                     <span class="text-sm text-gray-600">{{ auth()->user()->name }}</span>

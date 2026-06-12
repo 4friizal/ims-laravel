@@ -5,15 +5,13 @@ namespace App\Enums;
 enum Role: string
 {
     case Admin = 'admin';
-    case Manager = 'manager';
-    case Staff = 'staff';
+    case Operator = 'operator';
 
     public function label(): string
     {
         return match($this) {
             Role::Admin => 'Administrator',
-            Role::Manager => 'Manager',
-            Role::Staff => 'Staff',
+            Role::Operator => 'Operator',
         };
     }
 
@@ -24,6 +22,6 @@ enum Role: string
 
     public function canManageInventory(): bool
     {
-        return $this === Role::Admin || $this === Role::Manager;
+        return $this === Role::Admin || $this === Role::Operator;
     }
 }

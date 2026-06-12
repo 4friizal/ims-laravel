@@ -18,11 +18,14 @@ Route::middleware('auth')->group(function () {
 
     // Admin-only routes
     Route::middleware('role:admin')->group(function () {
+        Route::get('user-management', function () {
+            return "test asd";
+        })->name('user-management');
         // Route::get('/users', UserIndex::class)->name('users.index');
     });
 
-    // Admin + Manager routes
-    Route::middleware('role:admin,manager')->group(function () {
+    // Admin + Operator routes
+    Route::middleware('role:admin,operator')->group(function () {
         // Route::get('/inventory', InventoryIndex::class)->name('inventory.index');
     });
 });
