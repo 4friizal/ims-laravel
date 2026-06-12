@@ -1,7 +1,8 @@
 <div>
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h1 class="text-xl font-semibold text-gray-900 mb-1">Dashboard</h1>
-        <p class="text-sm text-gray-500">Welcome back, <span class="font-medium text-gray-700">{{ auth()->user()->name }}</span>!</p>
+        <p class="text-sm text-gray-500">Welcome back, <span
+                class="font-medium text-gray-700">{{ auth()->user()->name }}</span>!</p>
 
         <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-100">
@@ -10,7 +11,7 @@
             </div>
         </div>
 
-        @if(auth()->user()->isAdmin())
+        @if (auth()->user()->isAdmin())
             <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                 <p class="text-sm font-medium text-amber-800">
                     Administrator — You have full access to all features including user management.

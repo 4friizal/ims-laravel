@@ -1,0 +1,43 @@
+{
+    "tabWidth": 2,
+    "useTabs": false,
+    "singleQuote": false,
+    "semi": true,
+    "trailingComma": "es5",
+    "printWidth": 100,
+    "plugins": [
+        "prettier-plugin-blade",
+        "@prettier/plugin-php"
+    ],
+    "overrides": [
+        {
+            "files": [
+                "*.blade.php"
+            ],
+            "options": {
+                "parser": "blade",
+                "tabWidth": 2,
+                "printWidth": 100
+            }
+        },
+        {
+            "files": [
+                "*.php"
+            ],
+            "options": {
+                "parser": "php",
+                "tabWidth": 2,
+                "phpVersion": "8.2",
+                "trailingCommaPHP": true
+            }
+        },
+        {
+            "files": [
+                "*.css"
+            ],
+            "options": {
+                "tabWidth": 2
+            }
+        }
+    ]
+}
