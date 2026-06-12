@@ -19,11 +19,11 @@
                 <div class="flex items-center gap-6">
                     <span class="font-semibold text-gray-900">{{ config('app.name', 'IMS') }}</span>
                     <a
-                        class="text-sm text-gray-600 hover:text-gray-900"
+                        class="{{ request()->routeIs('dashboard') ? 'font-extrabold text-black' : 'text-gray-600' }} text-sm  hover:text-gray-900"
                         href="{{ route('dashboard') }}"
                     >Dashboard</a>
                     <a
-                        class="text-sm text-gray-600 hover:text-gray-900"
+                        class="{{ request()->routeIs('user-management') ? 'font-extrabold text-black' : 'text-gray-600' }} text-sm hover:text-gray-900"
                         href="{{ route('user-management') }}"
                     >User Management</a>
                 </div>

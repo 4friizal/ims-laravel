@@ -2,6 +2,7 @@
 
 use App\Livewire\Auth\Login;
 use App\Livewire\Dashboard;
+use App\Livewire\Users\UserManagement;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -18,10 +19,7 @@ Route::middleware('auth')->group(function () {
 
     // Admin-only routes
     Route::middleware('role:admin')->group(function () {
-        Route::get('user-management', function () {
-            return "test asd";
-        })->name('user-management');
-        // Route::get('/users', UserIndex::class)->name('users.index');
+        Route::get('user-management', UserManagement::class)->name('user-management');
     });
 
     // Admin + Operator routes
