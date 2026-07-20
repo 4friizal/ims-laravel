@@ -15,8 +15,8 @@
         {{-- Header --}}
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
             <div>
-                <h1 class="text-xl font-semibold text-gray-900">User Management</h1>
-                <p class="text-sm text-gray-500 mt-0.5">Manage system users and their roles.</p>
+                <h1 class="text-xl font-semibold text-gray-900">Manajemen Pengguna</h1>
+                <p class="text-sm text-gray-500 mt-0.5">Kelola pengguna sistem dan peran mereka.</p>
             </div>
             <button
                 class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
@@ -35,7 +35,7 @@
                         d="M12 4v16m8-8H4"
                     />
                 </svg>
-                Add User
+                Tambah Pengguna
             </button>
         </div>
 
@@ -45,7 +45,7 @@
                 class="w-full sm:w-72 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 wire:model.live.debounce.300ms="search"
                 type="text"
-                placeholder="Search by name or email…"
+                placeholder="Cari berdasarkan nama atau email…"
             />
         </div>
 
@@ -54,14 +54,14 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Peran
                         </th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Actions</th>
+                            Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
@@ -70,7 +70,7 @@
                             <td class="px-6 py-4 text-sm font-medium text-gray-900">
                                 {{ $user->name }}
                                 @if ($user->id === auth()->id())
-                                    <span class="ml-2 text-xs text-gray-400">(you)</span>
+                                    <span class="ml-2 text-xs text-gray-400">(Anda)</span>
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600">{{ $user->email }}</td>
@@ -95,14 +95,14 @@
                                         class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                                         wire:click="openEdit({{ $user->id }})"
                                     >
-                                        Edit
+                                        Ubah
                                     </button>
                                     <button
                                         class="px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                         wire:click="openDelete({{ $user->id }})"
                                         @if ($user->id === auth()->id()) disabled @endif
                                     >
-                                        Delete
+                                        Hapus
                                     </button>
                                 </div>
                             </td>
@@ -113,7 +113,7 @@
                                 class="px-6 py-12 text-center text-sm text-gray-500"
                                 colspan="4"
                             >
-                                No users found.
+                                Tidak ada pengguna ditemukan.
                             </td>
                         </tr>
                     @endforelse
@@ -145,7 +145,7 @@
             <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
                 <div class="flex items-center justify-between mb-5">
                     <h2 class="text-lg font-semibold text-gray-900">
-                        {{ $editingId ? 'Edit User' : 'Add User' }}
+                        {{ $editingId ? 'Ubah Pengguna' : 'Tambah Pengguna' }}
                     </h2>
                     <button
                         class="text-gray-400 hover:text-gray-600 transition-colors"
@@ -173,7 +173,7 @@
                 >
                     {{-- Name --}}
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
                         <input
                             class="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent @error('name') border-red-400 @else border-gray-300 @enderror"
                             wire:model="name"
@@ -201,12 +201,12 @@
 
                     {{-- Role --}}
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Peran</label>
                         <select
                             class="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent @error('role') border-red-400 @else border-gray-300 @enderror"
                             wire:model="role"
                         >
-                            <option value="">Select a role…</option>
+                            <option value="">Pilih peran…</option>
                             @foreach ($roles as $r)
                                 <option value="{{ $r->value }}">{{ $r->label() }}</option>
                             @endforeach
@@ -219,9 +219,9 @@
                     {{-- Password --}}
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Password
+                            Kata Sandi
                             @if ($editingId)
-                                <span class="text-gray-400 font-normal">(leave blank to keep current)</span>
+                                <span class="text-gray-400 font-normal">(kosongkan untuk tetap menggunakan yang sekarang)</span>
                             @endif
                         </label>
                         <input
@@ -237,7 +237,7 @@
 
                     {{-- Password Confirmation --}}
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Konfirmasi Kata Sandi</label>
                         <input
                             class="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent @error('passwordConfirmation') border-red-400 @else border-gray-300 @enderror"
                             wire:model="passwordConfirmation"
@@ -256,13 +256,13 @@
                             type="button"
                             wire:click="closeModals"
                         >
-                            Cancel
+                            Batal
                         </button>
                         <button
                             class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
                             type="submit"
                         >
-                            {{ $editingId ? 'Save Changes' : 'Create User' }}
+                            {{ $editingId ? 'Simpan Perubahan' : 'Buat Pengguna' }}
                         </button>
                     </div>
                 </form>
@@ -296,11 +296,11 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-base font-semibold text-gray-900">Delete User</h2>
+                        <h2 class="text-base font-semibold text-gray-900">Hapus Pengguna</h2>
                         <p class="mt-1 text-sm text-gray-600">
-                            Are you sure you want to delete <span
+                            Apakah Anda yakin ingin menghapus <span
                                 class="font-medium text-gray-900">{{ $deletingName }}</span>?
-                            This action cannot be undone.
+                            Tindakan ini tidak dapat dibatalkan.
                         </p>
                     </div>
                 </div>
@@ -310,13 +310,13 @@
                         class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                         wire:click="closeModals"
                     >
-                        Cancel
+                        Batal
                     </button>
                     <button
                         class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
                         wire:click="confirmDelete"
                     >
-                        Delete
+                        Hapus
                     </button>
                 </div>
             </div>

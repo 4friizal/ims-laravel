@@ -26,5 +26,9 @@ class DatabaseSeeder extends Seeder
             'password' => 'password',
             'role' => Role::Operator,
         ]);
+
+        $this->call([
+            InventorySeeder::class,
+        ]);
     }
 }

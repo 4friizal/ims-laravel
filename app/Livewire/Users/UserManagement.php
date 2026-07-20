@@ -17,18 +17,25 @@ class UserManagement extends Component
 
     // Modal state
     public bool $showFormModal = false;
+
     public bool $showDeleteModal = false;
 
     // Form fields
     public ?int $editingId = null;
+
     public string $name = '';
+
     public string $email = '';
+
     public string $password = '';
+
     public string $passwordConfirmation = '';
+
     public string $role = '';
 
     // Delete target
     public ?int $deletingId = null;
+
     public string $deletingName = '';
 
     public function updatingSearch(): void
@@ -61,7 +68,7 @@ class UserManagement extends Component
 
         $rules = [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email' . ($isCreating ? '' : ',' . $this->editingId),
+            'email' => 'required|email|max:255|unique:users,email'.($isCreating ? '' : ','.$this->editingId),
             'role' => 'required|in:admin,operator',
         ];
 
@@ -71,14 +78,14 @@ class UserManagement extends Component
         }
 
         $this->validate($rules, [
-            'name.required' => 'Name is required.',
-            'email.required' => 'Email is required.',
-            'email.unique' => 'This email is already taken.',
-            'role.required' => 'Role is required.',
-            'password.required' => 'Password is required.',
-            'password.min' => 'Password must be at least 8 characters.',
-            'password.same' => 'Passwords do not match.',
-            'passwordConfirmation.required' => 'Please confirm the password.',
+            'name.required' => 'Nama wajib diisi.',
+            'email.required' => 'Email wajib diisi.',
+            'email.unique' => 'Email ini sudah digunakan.',
+            'role.required' => 'Peran wajib diisi.',
+            'password.required' => 'Kata sandi wajib diisi.',
+            'password.min' => 'Kata sandi minimal harus 8 karakter.',
+            'password.same' => 'Kata sandi tidak cocok.',
+            'passwordConfirmation.required' => 'Silakan konfirmasi kata sandi.',
         ]);
 
         $data = [
@@ -93,10 +100,10 @@ class UserManagement extends Component
 
         if ($isCreating) {
             User::create($data);
-            session()->flash('success', 'User created successfully.');
+            session()->flash('success', 'Pengguna berhasil dibuat.');
         } else {
             User::findOrFail($this->editingId)->update($data);
-            session()->flash('success', 'User updated successfully.');
+            session()->flash('success', 'Pengguna berhasil diperbarui.');
         }
 
         $this->showFormModal = false;
@@ -106,7 +113,8 @@ class UserManagement extends Component
     public function openDelete(int $userId): void
     {
         if ($userId === auth()->id()) {
-            session()->flash('error', 'You cannot delete your own account.');
+            session()->flash('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
+
             return;
         }
 
@@ -119,13 +127,14 @@ class UserManagement extends Component
     public function confirmDelete(): void
     {
         if ($this->deletingId === auth()->id()) {
-            session()->flash('error', 'You cannot delete your own account.');
+            session()->flash('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
             $this->showDeleteModal = false;
+
             return;
         }
 
         User::findOrFail($this->deletingId)->delete();
-        session()->flash('success', 'User deleted successfully.');
+        session()->flash('success', 'Pengguna berhasil dihapus.');
         $this->showDeleteModal = false;
         $this->deletingId = null;
         $this->deletingName = '';
@@ -152,7 +161,7 @@ class UserManagement extends Component
     public function render()
     {
         $users = User::query()
-            ->when($this->search, fn($q) => $q->where('name', 'like', "%{$this->search}%")
+            ->when($this->search, fn ($q) => $q->where('name', 'like', "%{$this->search}%")
                 ->orWhere('email', 'like', "%{$this->search}%"))
             ->orderBy('name')
             ->paginate(10);

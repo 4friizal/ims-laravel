@@ -12,7 +12,7 @@
         <div class="w-full max-w-md">
             <div class="text-center mb-8">
                 <h1 class="text-2xl font-bold text-gray-900">{{ config('app.name', 'IMS') }}</h1>
-                <p class="text-sm text-gray-500 mt-1">Inventory Management System</p>
+                <p class="text-sm text-gray-500 mt-1">Sistem Manajemen Inventaris</p>
             </div>
             {{ $slot }}
         </div>

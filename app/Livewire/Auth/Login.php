@@ -10,10 +10,15 @@ use Livewire\Component;
 #[Layout('layouts.auth')]
 class Login extends Component
 {
-    #[Validate('required|email')]
+    #[Validate('required|email', message: [
+        'required' => 'Email wajib diisi.',
+        'email' => 'Format email tidak valid.',
+    ])]
     public string $email = '';
 
-    #[Validate('required|string')]
+    #[Validate('required|string', message: [
+        'required' => 'Kata sandi wajib diisi.',
+    ])]
     public string $password = '';
 
     public bool $remember = false;
@@ -23,7 +28,8 @@ class Login extends Component
         $this->validate();
 
         if (! Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
-            $this->addError('email', 'These credentials do not match our records.');
+            $this->addError('email', 'Email atau kata sandi yang Anda masukkan tidak sesuai.');
+
             return;
         }
 

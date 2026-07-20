@@ -23,6 +23,6 @@ class RoleMiddleware
             }
         }
 
-        abort(403, 'You do not have permission to access this page.');
+        abort(403, 'Anda tidak memiliki izin untuk mengakses halaman ini.');
     }
 }

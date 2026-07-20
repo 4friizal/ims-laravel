@@ -1,21 +1,21 @@
 services:
-    db:
-        image: mysql:8.0
-        restart: unless-stopped
-        tty: true
-        ports:
-            - "3306:3306" # Exposes MySQL to your local CachyOS machine
-        environment:
-            MYSQL_DATABASE: ims_restaurant
-            MYSQL_ROOT_PASSWORD: 1234
-        volumes:
-            - db_data:/var/lib/mysql
-        networks:
-            - ims-network
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: ims_restaurant
+      MYSQL_ROOT_PASSWORD: 1234
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - ims-network
 
 networks:
-    ims-network:
-        driver: bridge
+  ims-network:
+    driver: bridge
 
 volumes:
-    db_data:
+  db_data:

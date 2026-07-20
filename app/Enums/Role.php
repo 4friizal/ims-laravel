@@ -9,7 +9,7 @@ enum Role: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             Role::Admin => 'Administrator',
             Role::Operator => 'Operator',
         };

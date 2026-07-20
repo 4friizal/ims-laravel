@@ -1,5 +1,5 @@
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-    <h2 class="text-xl font-semibold text-gray-900 mb-6">Sign in to your account</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-6">Masuk ke akun Anda</h2>
 
     <form
         class="space-y-4"
@@ -26,7 +26,7 @@
             <label
                 class="block text-sm font-medium text-gray-700 mb-1"
                 for="password"
-            >Password</label>
+            >Kata Sandi</label>
             <input
                 class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 id="password"
@@ -49,14 +49,14 @@
             <label
                 class="ml-2 text-sm text-gray-600"
                 for="remember"
-            >Remember me</label>
+            >Ingat saya</label>
         </div>
 
         <button
             class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors"
             type="submit"
         >
-            Sign in
+            Masuk
         </button>
     </form>
 
