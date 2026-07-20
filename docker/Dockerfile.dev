@@ -1,0 +1,49 @@
+# Development image: PHP 8.4 CLI + Composer + Bun.
+# Source code is bind-mounted at runtime (see docker-compose.yml), so nothing
+# is copied in here — this image only provides the toolchain.
+FROM php:8.4-cli-bookworm
+
+# doc: https://github.com/mlocati/docker-php-extension-installer
+COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/
+RUN install-php-extensions \
+    pdo_mysql \
+    pdo_sqlite \
+    bcmath \
+    intl \
+    zip \
+    pcntl \
+    gd \
+    opcache
+
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+COPY --from=oven/bun:1 /usr/local/bin/bun /usr/local/bin/bun
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    unzip \
+    default-mysql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Xdebug off by default; enable with XDEBUG_MODE=debug in the environment.
+RUN install-php-extensions xdebug \
+    && echo "xdebug.mode=off" > /usr/local/etc/php/conf.d/zz-xdebug.ini \
+    && echo "xdebug.client_host=host.docker.internal" >> /usr/local/etc/php/conf.d/zz-xdebug.ini \
+    && echo "xdebug.start_with_request=yes" >> /usr/local/etc/php/conf.d/zz-xdebug.ini
+
+COPY docker/php/php.dev.ini /usr/local/etc/php/conf.d/zz-app.ini
+
+# Match the host user so files written from the container (migrations, caches,
+# vendor/) stay editable on the host. Override at build time if your uid != 1000.
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g ${GID} app 2>/dev/null || true \
+    && useradd -u ${UID} -g ${GID} -m -s /bin/bash app 2>/dev/null || true
+
+COPY docker/entrypoint.dev.sh /usr/local/bin/entrypoint
+RUN chmod +x /usr/local/bin/entrypoint
+
+WORKDIR /var/www/html
+USER app
+
+ENTRYPOINT ["entrypoint"]
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]

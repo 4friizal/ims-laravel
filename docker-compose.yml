@@ -1,4 +1,55 @@
+x-app: &app
+  build:
+    context: .
+    dockerfile: docker/Dockerfile.dev
+    args:
+      UID: ${UID:-1000}
+      GID: ${GID:-1000}
+  restart: unless-stopped
+  volumes:
+    - .:/var/www/html
+  environment: &app-env
+    DB_CONNECTION: mysql
+    DB_HOST: db
+    DB_PORT: 3306
+    DB_DATABASE: ims_restaurant
+    DB_USERNAME: root
+    DB_PASSWORD: 1234
+  networks:
+    - ims-network
+
 services:
+  app:
+    <<: *app
+    ports:
+      - "8000:8000"
+    environment:
+      <<: *app-env
+      # Only this service bootstraps the schema; the others just wait on it.
+      RUN_MIGRATIONS: "true"
+    depends_on:
+      - db
+
+  queue:
+    <<: *app
+    command: php artisan queue:listen --tries=1 --timeout=0
+    depends_on:
+      - app
+
+  vite:
+    <<: *app
+    # host/port come from vite.config.js so native and container runs match.
+    command: bun run dev
+    ports:
+      - "5173:5173"
+    environment:
+      <<: *app-env
+      # Set to "true" if file changes aren't detected (Docker Desktop on
+      # macOS/Windows); Linux bind mounts deliver inotify events natively.
+      VITE_USE_POLLING: "${VITE_USE_POLLING:-false}"
+    depends_on:
+      - app
+
   db:
     image: mysql:8.0
     restart: unless-stopped

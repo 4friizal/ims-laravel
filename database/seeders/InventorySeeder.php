@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Enums\MaterialUnit;
 use App\Models\Category;
-use App\Models\MaterialUsage;
 use App\Models\Menu;
 use App\Models\RawMaterial;
 use App\Services\InventoryService;
@@ -28,20 +27,26 @@ class InventorySeeder extends Seeder
             'sayur' => Category::create(['name' => 'Sayur & Umbi', 'description' => 'Sayuran dan umbi-umbian']),
         ];
 
-        // --- Raw materials --- [key => [name, category, unit, minimum_stock, base daily usage, unit cost]]
+        // --- Raw materials ---
+        // [key => [name, category, unit, minimum_stock, base daily usage, unit cost, reorder-at days, order-up-to days]]
+        // The two day figures are the purchasing policy used by the simulation:
+        // reorder once cover drops below the first, then top up to the second.
+        // Staples are bought in bulk (well above the 7-day forecast horizon) while
+        // perishables are bought little and often, so the prediction page ends with
+        // a mix of healthy and needs-restock rows instead of one uniform verdict.
         $materialDefs = [
-            'santan' => ['Santan', 'santan', MaterialUnit::Liter, 10, 8.0, 12000],
-            'daging_sapi' => ['Daging Sapi', 'protein', MaterialUnit::Kilogram, 8, 6.0, 130000],
-            'ayam' => ['Ayam', 'protein', MaterialUnit::Kilogram, 8, 7.0, 35000],
-            'cabai_merah' => ['Cabai Merah', 'bumbu', MaterialUnit::Kilogram, 5, 4.5, 45000],
-            'bawang_putih' => ['Bawang Putih', 'bumbu', MaterialUnit::Kilogram, 3, 2.0, 30000],
-            'bawang_merah' => ['Bawang Merah', 'bumbu', MaterialUnit::Kilogram, 3, 2.5, 38000],
-            'kentang' => ['Kentang', 'sayur', MaterialUnit::Kilogram, 5, 3.0, 18000],
+            'santan' => ['Santan', 'santan', MaterialUnit::Liter, 10, 8.0, 12000, 8, 16],
+            'daging_sapi' => ['Daging Sapi', 'protein', MaterialUnit::Kilogram, 8, 6.0, 130000, 3, 6],
+            'ayam' => ['Ayam', 'protein', MaterialUnit::Kilogram, 8, 7.0, 35000, 9, 18],
+            'cabai_merah' => ['Cabai Merah', 'bumbu', MaterialUnit::Kilogram, 5, 4.5, 45000, 2, 5],
+            'bawang_putih' => ['Bawang Putih', 'bumbu', MaterialUnit::Kilogram, 3, 2.0, 30000, 10, 20],
+            'bawang_merah' => ['Bawang Merah', 'bumbu', MaterialUnit::Kilogram, 3, 2.5, 38000, 4, 9],
+            'kentang' => ['Kentang', 'sayur', MaterialUnit::Kilogram, 5, 3.0, 18000, 3, 7],
         ];
 
         /** @var array<string, RawMaterial> $materials */
         $materials = [];
-        foreach ($materialDefs as $key => [$name, $catKey, $unit, $min, $baseUsage, $unitCost]) {
+        foreach ($materialDefs as $key => [$name, $catKey, $unit, $min, $baseUsage, $unitCost, $reorderDays, $coverDays]) {
             $materials[$key] = RawMaterial::create([
                 'category_id' => $categories[$catKey]->id,
                 'name' => $name,
@@ -50,34 +55,57 @@ class InventorySeeder extends Seeder
             ]);
         }
 
-        // --- 90 days of mock usage (trend + weekly seasonality + noise) ---
+        // --- 3 months of mock stock movements (in + out) ---
+        // Each day is replayed through InventoryService so batches, movements and
+        // the MaterialUsage rows the AI trains on all stay consistent with FIFO.
         $days = 90;
-        foreach ($materialDefs as $key => [$name, $catKey, $unit, $min, $baseUsage, $unitCost]) {
+
+        foreach ($materialDefs as $key => [$name, $catKey, $unit, $min, $baseUsage, $unitCost, $reorderDays, $coverDays]) {
             $material = $materials[$key];
             // A gentle upward trend so regression predicts growth for most materials.
             $trendPerDay = $baseUsage * 0.004; // ~0.4% of base added per day
 
+            // Opening stock, received the day before the window starts.
+            $service->stockIn(
+                $material,
+                round($baseUsage * $coverDays, 2),
+                round($unitCost * 0.92),
+                Carbon::today()->subDays($days + 1),
+                'Stok awal',
+                'Stok awal',
+            );
+
             for ($i = $days; $i >= 1; $i--) {
                 $date = Carbon::today()->subDays($i);
+                $elapsed = $days - $i;
+
                 // Weekend uplift (Fri/Sat/Sun busier for a restaurant).
                 $dow = $date->dayOfWeek;
                 $seasonal = in_array($dow, [Carbon::FRIDAY, Carbon::SATURDAY, Carbon::SUNDAY], true) ? 1.25 : 1.0;
-                $trend = $baseUsage + $trendPerDay * ($days - $i);
+                $trend = $baseUsage + $trendPerDay * $elapsed;
                 $noise = mt_rand(-15, 15) / 100; // +/-15%
                 $quantity = max(0, round($trend * $seasonal * (1 + $noise), 2));
 
-                MaterialUsage::create([
-                    'raw_material_id' => $material->id,
-                    'usage_date' => $date,
-                    'quantity' => $quantity,
-                ]);
-            }
+                // --- Stock in: top up to the target cover once stock runs low ---
+                // Blended daily demand (weekends are ~1.11x an average day).
+                $expectedDaily = $trend * 1.11;
+                $onHand = $material->currentStock();
 
-            // --- Initial stock: a few FIFO batches at staggered dates/costs ---
-            // Sized to ~7 days of usage so some materials fall below the forecast
-            // horizon and surface a restock recommendation on the prediction page.
-            $service->stockIn($material, $baseUsage * 4, $unitCost * 0.95, Carbon::today()->subDays(20), 'Stok awal', 'Stok awal');
-            $service->stockIn($material, $baseUsage * 3, $unitCost, Carbon::today()->subDays(7), 'Pembelian rutin', 'Pembelian');
+                if ($onHand < $expectedDaily * $reorderDays) {
+                    $orderQty = round(($expectedDaily * $coverDays) - $onHand, 2);
+                    // Supplier prices inflate ~0.18%/day with a little variance.
+                    $purchaseCost = round($unitCost * (0.92 + 0.0018 * $elapsed) * (1 + mt_rand(-4, 4) / 100));
+
+                    $service->stockIn($material, $orderQty, $purchaseCost, $date, 'Pembelian rutin', 'Pembelian');
+                    $onHand += $orderQty;
+                }
+
+                // --- Stock out: the day's kitchen consumption (FIFO + usage row) ---
+                $quantity = min($quantity, $onHand);
+                if ($quantity > 0) {
+                    $service->stockOut($material, $quantity, 'Pemakaian dapur', null, $date);
+                }
+            }
         }
 
         // --- Menus + recipes (raw materials with per-portion quantity) ---

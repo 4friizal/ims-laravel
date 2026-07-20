@@ -10,7 +10,7 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class StockPrediction extends Component
 {
-    public int $horizonDays = 7;
+    public ?int $horizonDays = 7;
 
     public ?int $selectedMaterialId = null;
 
