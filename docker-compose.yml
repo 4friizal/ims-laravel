@@ -22,7 +22,7 @@ services:
   app:
     <<: *app
     ports:
-      - "8000:8000"
+      - "8080:8080"
     environment:
       <<: *app-env
       # Only this service bootstraps the schema; the others just wait on it.
@@ -41,7 +41,7 @@ services:
     # host/port come from vite.config.js so native and container runs match.
     command: bun run dev
     ports:
-      - "5173:5173"
+      - "5174:5174"
     environment:
       <<: *app-env
       # Set to "true" if file changes aren't detected (Docker Desktop on
@@ -55,7 +55,7 @@ services:
     restart: unless-stopped
     tty: true
     ports:
-      - "3306:3306"
+      - "3307:3306"
     environment:
       MYSQL_DATABASE: ims_restaurant
       MYSQL_ROOT_PASSWORD: 1234
