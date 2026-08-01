@@ -16,7 +16,7 @@
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
             <div>
                 <h1 class="text-xl font-semibold text-gray-900">Menu</h1>
-                <p class="text-sm text-gray-500 mt-0.5">Menu beserta resep bahan bakunya. Mencatat penjualan mengurangi stok secara FIFO.</p>
+                <p class="text-sm text-gray-500 mt-0.5">Menu beserta resep bahan bakunya.</p>
             </div>
             <button
                 class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"

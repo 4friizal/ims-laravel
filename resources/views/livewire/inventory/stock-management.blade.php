@@ -16,7 +16,7 @@
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
             <div>
                 <h1 class="text-xl font-semibold text-gray-900">Stok Masuk & Keluar</h1>
-                <p class="text-sm text-gray-500 mt-0.5">Catat pembelian (masuk) dan pemakaian (keluar). Stok keluar mengikuti metode FIFO.</p>
+                <p class="text-sm text-gray-500 mt-0.5">Catat pembelian (masuk) dan pemakaian (keluar).</p>
             </div>
             <div class="flex gap-2">
                 <button
