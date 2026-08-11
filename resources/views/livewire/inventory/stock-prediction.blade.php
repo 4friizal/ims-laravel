@@ -62,6 +62,103 @@
         </div>
     </div>
 
+    {{-- Model evaluation --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-base font-semibold text-gray-900">Evaluasi Akurasi Model</h2>
+            <p class="text-sm text-gray-500 mt-0.5">
+                Model dilatih pada data lama, lalu diuji pada {{ $testDays }} hari terakhir yang tidak pernah dilihat saat pelatihan.
+            </p>
+        </div>
+
+        @if ($evaluation && $evaluation['evaluated'])
+            <div class="grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-gray-200 border-b border-gray-200">
+                <div class="px-6 py-4">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">MAE</p>
+                    <p class="text-2xl font-semibold text-gray-900 mt-1">{{ $fmt($evaluation['mae']) }}</p>
+                    <p class="text-xs text-gray-400 mt-0.5">{{ $selected->unit->shortLabel() }} rata-rata meleset</p>
+                </div>
+                <div class="px-6 py-4">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">RMSE</p>
+                    <p class="text-2xl font-semibold text-gray-900 mt-1">{{ $fmt($evaluation['rmse']) }}</p>
+                    <p class="text-xs text-gray-400 mt-0.5">penalti error besar</p>
+                </div>
+                <div class="px-6 py-4">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">MAPE</p>
+                    <p class="text-2xl font-semibold text-gray-900 mt-1">
+                        {{ $evaluation['mape'] === null ? '—' : $fmt($evaluation['mape']) . '%' }}
+                    </p>
+                    <p class="text-xs text-gray-400 mt-0.5">error relatif</p>
+                </div>
+                <div class="px-6 py-4">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Data Latih / Uji</p>
+                    <p class="text-2xl font-semibold text-gray-900 mt-1">
+                        {{ $evaluation['train_size'] }} <span class="text-gray-400">/</span> {{ $evaluation['test_size'] }}
+                    </p>
+                    <p class="text-xs text-gray-400 mt-0.5">hari</p>
+                </div>
+            </div>
+
+            <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 text-xs text-gray-600">
+                Persamaan model: <span class="font-mono text-gray-900">y = {{ $fmt($evaluation['intercept']) }} + {{ $fmt($evaluation['slope']) }}·x</span>
+                &middot; R² latih {{ number_format((float) $evaluation['r2_train'] * 100, 0) }}%
+                &middot; MAE baseline (rata-rata) {{ $fmt($evaluation['baseline_mae']) }}
+                @if ($evaluation['baseline_mae'] > 0)
+                    <span class="{{ $evaluation['mae'] < $evaluation['baseline_mae'] ? 'text-green-600' : 'text-amber-600' }} font-medium">
+                        ({{ $evaluation['mae'] < $evaluation['baseline_mae'] ? 'model lebih baik' : 'baseline lebih baik' }})
+                    </span>
+                @endif
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktual</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Prediksi</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Error</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">APE</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-100">
+                        @foreach ($evaluation['rows'] as $row)
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-3 text-sm text-gray-900">
+                                    {{ \Illuminate\Support\Carbon::parse($row['date'])->format('d M Y') }}
+                                </td>
+                                <td class="px-6 py-3 text-sm text-gray-600 text-right">{{ $fmt($row['actual']) }}</td>
+                                <td class="px-6 py-3 text-sm text-gray-600 text-right">{{ $fmt($row['predicted']) }}</td>
+                                <td class="px-6 py-3 text-sm text-right {{ $row['error'] < 0 ? 'text-red-600' : 'text-gray-600' }}">
+                                    {{ $row['error'] > 0 ? '+' : '' }}{{ $fmt($row['error']) }}
+                                </td>
+                                <td class="px-6 py-3 text-sm text-gray-600 text-right">
+                                    {{ $row['ape'] === null ? '—' : $fmt($row['ape']) . '%' }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    @if ($overallEvaluation['evaluated'])
+                        <tfoot class="bg-gray-50 border-t border-gray-200">
+                            <tr>
+                                <td class="px-6 py-3 text-xs text-gray-500" colspan="5">
+                                    Seluruh sistem ({{ $overallEvaluation['materials'] }} bahan baku, {{ $overallEvaluation['test_size'] }} titik uji):
+                                    MAE {{ $fmt($overallEvaluation['mae']) }} &middot;
+                                    RMSE {{ $fmt($overallEvaluation['rmse']) }} &middot;
+                                    MAPE {{ $overallEvaluation['mape'] === null ? '—' : $fmt($overallEvaluation['mape']) . '%' }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    @endif
+                </table>
+            </div>
+        @else
+            <div class="px-6 py-12 text-center text-sm text-gray-500">
+                Riwayat pemakaian belum cukup untuk evaluasi (minimal {{ $testDays + 2 }} hari data).
+            </div>
+        @endif
+    </div>
+
     {{-- Recommendation table --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-200">
         <div class="px-6 py-4 border-b border-gray-200">

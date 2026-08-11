@@ -13,6 +13,11 @@ class StockPredictionService
     public int $trainingWindow = 60;
 
     /**
+     * Number of most-recent days held out as test data during evaluation.
+     */
+    public int $testWindow = 14;
+
+    /**
      * Least-squares linear regression over (x, y) points.
      *
      * @param  array<int, array{0: float, 1: float}>  $points  list of [x, y]
@@ -62,23 +67,37 @@ class StockPredictionService
     }
 
     /**
+     * The most recent daily usage rows for a material, oldest first.
+     *
+     * @return array<int, array{date: string, quantity: float}>
+     */
+    public function usageSeries(RawMaterial $material, ?int $limit = null): array
+    {
+        $limit ??= $this->trainingWindow;
+
+        return $material->usages()
+            ->orderByDesc('usage_date')
+            ->limit($limit)
+            ->get(['usage_date', 'quantity'])
+            ->reverse()
+            ->values()
+            ->map(fn ($usage) => [
+                'date' => Carbon::parse($usage->usage_date)->toDateString(),
+                'quantity' => (float) $usage->quantity,
+            ])
+            ->all();
+    }
+
+    /**
      * Fit regression on a material's recent daily usage.
      *
      * @return array{slope: float, intercept: float, r2: float, points: array<int, array{0: float, 1: float}>, lastIndex: int}
      */
     public function fit(RawMaterial $material): array
     {
-        $usages = $material->usages()
-            ->orderBy('usage_date')
-            ->get(['usage_date', 'quantity'])
-            ->reverse()
-            ->take($this->trainingWindow)
-            ->reverse()
-            ->values();
-
         $points = [];
-        foreach ($usages as $index => $usage) {
-            $points[] = [(float) $index, (float) $usage->quantity];
+        foreach ($this->usageSeries($material) as $index => $row) {
+            $points[] = [(float) $index, $row['quantity']];
         }
 
         $result = $this->linearRegression($points);
@@ -159,29 +178,181 @@ class StockPredictionService
     }
 
     /**
+     * Hold-out evaluation: train on the older days, score on the newest ones.
+     *
+     * The last $testDays rows are never shown to the regression, so MAE/RMSE/MAPE
+     * measure error on data the model has not seen.
+     *
+     * @return array{
+     *     evaluated: bool,
+     *     train_size: int,
+     *     test_size: int,
+     *     slope: float,
+     *     intercept: float,
+     *     r2_train: float,
+     *     mae: float|null,
+     *     rmse: float|null,
+     *     mape: float|null,
+     *     baseline_mae: float|null,
+     *     rows: array<int, array{date: string, actual: float, predicted: float, error: float, ape: float|null}>
+     * }
+     */
+    public function evaluate(RawMaterial $material, ?int $testDays = null): array
+    {
+        $testDays = max(1, $testDays ?? $this->testWindow);
+        $series = $this->usageSeries($material, $this->trainingWindow + $testDays);
+        $n = count($series);
+        $trainSize = $n - $testDays;
+
+        $empty = [
+            'evaluated' => false,
+            'train_size' => max(0, $trainSize),
+            'test_size' => 0,
+            'slope' => 0.0,
+            'intercept' => 0.0,
+            'r2_train' => 0.0,
+            'mae' => null,
+            'rmse' => null,
+            'mape' => null,
+            'baseline_mae' => null,
+            'rows' => [],
+        ];
+
+        // Need at least two training points to define a line.
+        if ($trainSize < 2) {
+            return $empty;
+        }
+
+        $trainPoints = [];
+        $trainSum = 0.0;
+        for ($i = 0; $i < $trainSize; $i++) {
+            $trainPoints[] = [(float) $i, $series[$i]['quantity']];
+            $trainSum += $series[$i]['quantity'];
+        }
+
+        $fit = $this->linearRegression($trainPoints);
+        $baseline = $trainSum / $trainSize; // naive forecast: mean of the training window
+
+        $rows = [];
+        $absError = $sqError = $baselineAbsError = 0.0;
+        $apeSum = 0.0;
+        $apeCount = 0;
+
+        for ($i = $trainSize; $i < $n; $i++) {
+            $actual = $series[$i]['quantity'];
+            $predicted = max(0.0, $fit['intercept'] + $fit['slope'] * $i);
+            $error = $predicted - $actual;
+
+            $absError += abs($error);
+            $sqError += $error ** 2;
+            $baselineAbsError += abs($baseline - $actual);
+
+            // MAPE is undefined when the actual value is zero; skip those days.
+            $ape = $actual == 0.0 ? null : abs($error / $actual) * 100;
+            if ($ape !== null) {
+                $apeSum += $ape;
+                $apeCount++;
+            }
+
+            $rows[] = [
+                'date' => $series[$i]['date'],
+                'actual' => round($actual, 2),
+                'predicted' => round($predicted, 2),
+                'error' => round($error, 2),
+                'ape' => $ape === null ? null : round($ape, 2),
+            ];
+        }
+
+        $testSize = count($rows);
+
+        return [
+            'evaluated' => true,
+            'train_size' => $trainSize,
+            'test_size' => $testSize,
+            'slope' => round($fit['slope'], 4),
+            'intercept' => round($fit['intercept'], 4),
+            'r2_train' => round($fit['r2'], 4),
+            'mae' => round($absError / $testSize, 3),
+            'rmse' => round(sqrt($sqError / $testSize), 3),
+            'mape' => $apeCount === 0 ? null : round($apeSum / $apeCount, 2),
+            'baseline_mae' => round($baselineAbsError / $testSize, 3),
+            'rows' => $rows,
+        ];
+    }
+
+    /**
+     * Weighted average of the per-material evaluation, for a system-wide score.
+     *
+     * @param  iterable<RawMaterial>  $materials
+     * @return array{evaluated: bool, materials: int, test_size: int, mae: float|null, rmse: float|null, mape: float|null, baseline_mae: float|null}
+     */
+    public function evaluateAll(iterable $materials, ?int $testDays = null): array
+    {
+        $count = $totalTest = 0;
+        $absError = $sqError = $baselineAbsError = 0.0;
+        $apeSum = 0.0;
+        $apeCount = 0;
+
+        foreach ($materials as $material) {
+            $result = $this->evaluate($material, $testDays);
+            if (! $result['evaluated']) {
+                continue;
+            }
+
+            $count++;
+            $totalTest += $result['test_size'];
+            $absError += $result['mae'] * $result['test_size'];
+            $sqError += ($result['rmse'] ** 2) * $result['test_size'];
+            $baselineAbsError += $result['baseline_mae'] * $result['test_size'];
+
+            foreach ($result['rows'] as $row) {
+                if ($row['ape'] !== null) {
+                    $apeSum += $row['ape'];
+                    $apeCount++;
+                }
+            }
+        }
+
+        if ($totalTest === 0) {
+            return [
+                'evaluated' => false,
+                'materials' => 0,
+                'test_size' => 0,
+                'mae' => null,
+                'rmse' => null,
+                'mape' => null,
+                'baseline_mae' => null,
+            ];
+        }
+
+        return [
+            'evaluated' => true,
+            'materials' => $count,
+            'test_size' => $totalTest,
+            'mae' => round($absError / $totalTest, 3),
+            'rmse' => round(sqrt($sqError / $totalTest), 3),
+            'mape' => $apeCount === 0 ? null : round($apeSum / $apeCount, 2),
+            'baseline_mae' => round($baselineAbsError / $totalTest, 3),
+        ];
+    }
+
+    /**
      * History + forecast series for charting.
      *
      * @return array{labels: array<int, string>, actual: array<int, float|null>, forecast: array<int, float|null>}
      */
     public function historyAndForecastSeries(RawMaterial $material, int $horizonDays = 7): array
     {
-        $usages = $material->usages()
-            ->orderBy('usage_date')
-            ->get(['usage_date', 'quantity'])
-            ->reverse()
-            ->take($this->trainingWindow)
-            ->reverse()
-            ->values();
-
+        $series = $this->usageSeries($material);
         $fit = $this->fit($material);
 
         $labels = [];
         $actual = [];
         $forecast = [];
 
-        foreach ($usages as $usage) {
-            $labels[] = Carbon::parse($usage->usage_date)->format('d M');
-            $actual[] = (float) $usage->quantity;
+        foreach ($series as $row) {
+            $labels[] = Carbon::parse($row['date'])->format('d M');
+            $actual[] = $row['quantity'];
             $forecast[] = null;
         }
 

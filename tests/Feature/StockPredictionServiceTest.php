@@ -111,4 +111,70 @@ class StockPredictionServiceTest extends TestCase
         $this->assertNotNull($series['forecast'][16]);
         $this->assertNull($series['actual'][16]);
     }
+
+    public function test_evaluate_splits_train_and_test_windows(): void
+    {
+        // 40 days of history, last 14 held out as test data.
+        $material = $this->materialWithUsage(range(10, 49));
+
+        $result = $this->service->evaluate($material, 14);
+
+        $this->assertTrue($result['evaluated']);
+        $this->assertSame(26, $result['train_size']);
+        $this->assertSame(14, $result['test_size']);
+        $this->assertCount(14, $result['rows']);
+    }
+
+    public function test_evaluate_reports_near_zero_error_on_a_perfect_trend(): void
+    {
+        // y = index + 10 exactly, so a line fitted on the training half
+        // extrapolates onto the test half without error.
+        $material = $this->materialWithUsage(range(10, 49));
+
+        $result = $this->service->evaluate($material, 14);
+
+        $this->assertEqualsWithDelta(0.0, $result['mae'], 0.01);
+        $this->assertEqualsWithDelta(0.0, $result['rmse'], 0.01);
+        $this->assertEqualsWithDelta(0.0, $result['mape'], 0.01);
+        // The naive mean-of-training baseline is far worse on a trending series.
+        $this->assertGreaterThan(10.0, $result['baseline_mae']);
+    }
+
+    public function test_evaluate_penalises_a_model_that_misses_the_test_window(): void
+    {
+        // Flat 10/day for 30 days, then a sudden jump to 40/day for 14 days.
+        $quantities = array_merge(array_fill(0, 30, 10), array_fill(0, 14, 40));
+        $material = $this->materialWithUsage($quantities);
+
+        $result = $this->service->evaluate($material, 14);
+
+        // Trained only on the flat part, the model predicts ~10 against actual 40.
+        $this->assertEqualsWithDelta(30.0, $result['mae'], 1.0);
+        $this->assertEqualsWithDelta(75.0, $result['mape'], 3.0);
+        $this->assertGreaterThanOrEqual($result['mae'], $result['rmse']);
+    }
+
+    public function test_evaluate_returns_unevaluated_when_history_is_too_short(): void
+    {
+        $material = $this->materialWithUsage([10, 11, 12]);
+
+        $result = $this->service->evaluate($material, 14);
+
+        $this->assertFalse($result['evaluated']);
+        $this->assertNull($result['mae']);
+        $this->assertSame(0, $result['test_size']);
+    }
+
+    public function test_evaluate_all_aggregates_across_materials(): void
+    {
+        $this->materialWithUsage(range(10, 49));
+        $this->materialWithUsage(range(20, 59));
+
+        $result = $this->service->evaluateAll(RawMaterial::all(), 14);
+
+        $this->assertTrue($result['evaluated']);
+        $this->assertSame(2, $result['materials']);
+        $this->assertSame(28, $result['test_size']);
+        $this->assertEqualsWithDelta(0.0, $result['mae'], 0.01);
+    }
 }

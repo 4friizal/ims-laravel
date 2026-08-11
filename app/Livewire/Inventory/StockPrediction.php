@@ -14,6 +14,9 @@ class StockPrediction extends Component
 
     public ?int $selectedMaterialId = null;
 
+    /** Days of the newest history held out as test data during evaluation. */
+    public int $testDays = 14;
+
     public function mount(): void
     {
         $this->selectedMaterialId = RawMaterial::orderBy('name')->value('id');
@@ -59,6 +62,8 @@ class StockPrediction extends Component
             'recommendations' => $recommendations,
             'selected' => $selected,
             'chart' => $chart,
+            'evaluation' => $selected ? $prediction->evaluate($selected, $this->testDays) : null,
+            'overallEvaluation' => $prediction->evaluateAll($materials, $this->testDays),
         ]);
     }
 }
