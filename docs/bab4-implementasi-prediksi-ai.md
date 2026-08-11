@@ -119,7 +119,7 @@ Metode utama pada `StockPredictionService`:
 ┌──────────────────────────────────────────────────────────────────┐
 │ 2. PEMBENTUKAN DATASET — usageSeries()                           │
 │    Ambil 60 hari terakhir, urut kronologis                       │
-│    Ubah menjadi pasangan (x, y): x = indeks 0..59, y = quantity   │
+│    Ubah menjadi pasangan (x, y): x = indeks 0..59, y = quantity  │
 └───────────────────────────┬──────────────────────────────────────┘
                             ▼
 ┌──────────────────────────────────────────────────────────────────┐
